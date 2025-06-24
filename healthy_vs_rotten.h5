@@ -1,0 +1,72 @@
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten, Dropout
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+import os
+
+# Paths
+train_dir = 'C:\Users\snigd\SmartInternzProject\dataset'  # This should have subfolders for each class
+
+# Parameters
+img_size = 224
+batch_size = 32
+num_classes = 3  # biodegradable, recyclable, trash
+epochs = 10
+
+# Data augmentation and generator
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=30,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    validation_split=0.2
+)
+
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(img_size, img_size),
+    batch_size=batch_size,
+    class_mode='sparse',
+    subset='training'
+)
+
+val_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(img_size, img_size),
+    batch_size=batch_size,
+    class_mode='sparse',
+    subset='validation'
+)
+
+# Load VGG16 without top layers
+vgg_base = VGG16(include_top=False, weights='imagenet', input_shape=(img_size, img_size, 3))
+vgg_base.trainable = False  # Freeze pretrained layers
+
+# Build model
+model = Sequential([
+    vgg_base,
+    Flatten(),
+    Dropout(0.5),
+    Dense(128, activation='relu'),
+    Dense(num_classes, activation='softmax')
+])
+
+model.compile(optimizer=Adam(learning_rate=1e-4),
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Callbacks
+checkpoint = ModelCheckpoint('healthy_vs_rotten.h5', save_best_only=True, monitor='val_accuracy', mode='max')
+early_stop = EarlyStopping(monitor='val_loss', patience=3)
+
+# Train the model
+model.fit(
+    train_generator,
+    validation_data=val_generator,
+    epochs=epochs,
+    callbacks=[checkpoint, early_stop]
+)
+
+print("✅ Model trained and saved as 'healthy_vs_rotten.h5'")

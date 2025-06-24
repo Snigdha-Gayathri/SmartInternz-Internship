@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Image Viewer</title>
+</head>
+<body>
+    <h2>Random Test Image Prediction</h2>
+    <p>This page displays a randomly selected image and its predicted class.</p>
+
+    <form method="post" action="/random_predict">
+        <input type="submit" value="Show Random Image">
+    </form>
+
+    {% if filename %}
+        <img src="{{ url_for('static', filename='uploads/' + filename) }}" style="max-width:400px;"><br>
+        <h3>Prediction: {{ label }}</h3>
+    {% endif %}
+</body>
+</html>
